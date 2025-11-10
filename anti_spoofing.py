@@ -115,6 +115,10 @@ class TextureAntiSpoofing:
         self.variance_threshold = variance_threshold
         self.edge_threshold = edge_threshold
         self.confidence_threshold = confidence_threshold
+        
+        # Video detection - track temporal changes for detecting videos on phones
+        self.frame_history = {}  # bbox -> list of recent frame stats
+        self.max_history = 8  # Keep last 8 frames per face
     
     def calculate_texture_score(self, face_img):
         """
@@ -315,27 +319,100 @@ class TextureAntiSpoofing:
             return 20
         return 0
     
-    def detect_rectangular_boundary(self, face_img):
-        """Detect sharp rectangular boundaries (phone screen bezel)"""
-        gray = cv2.cvtColor(face_img, cv2.COLOR_BGR2GRAY)
-        edges = cv2.Canny(gray, 50, 150)
-        lines = cv2.HoughLinesP(edges, 1, np.pi/180, threshold=50, minLineLength=30, maxLineGap=10)
+    def detect_phone_border(self, face_img):
+        """
+        ENHANCED: Detect phone screen borders/bezels - the MOST RELIABLE phone indicator!
+        Phones have characteristic dark rectangular frames (bezels) around the displayed image.
         
-        if lines is not None:
-            h_lines = v_lines = 0
-            for line in lines:
-                x1, y1, x2, y2 = line[0]
-                angle = np.abs(np.arctan2(y2 - y1, x2 - x1) * 180 / np.pi)
-                if angle < 10 or angle > 170:
-                    h_lines += 1
-                elif 80 < angle < 100:
-                    v_lines += 1
+        This checks for:
+        1. Dark borders (phone bezel is usually black/dark gray)
+        2. Sharp contrast between border and screen content
+        3. Consistent border thickness
+        4. Rectangular frame pattern
+        """
+        h, w = face_img.shape[:2]
+        gray = cv2.cvtColor(face_img, cv2.COLOR_BGR2GRAY)
+        
+        # Calculate border region statistics
+        # Use 20% border thickness to catch phone bezels (was 12%)
+        border_thickness = max(int(min(h, w) * 0.20), 10)  # Check outer 20% of image
+        
+        # Sample border regions
+        top_border = gray[0:border_thickness, :]
+        bottom_border = gray[h-border_thickness:h, :]
+        left_border = gray[:, 0:border_thickness]
+        right_border = gray[:, w-border_thickness:w]
+        
+        # Center region (actual face content on screen)
+        center_y1 = border_thickness
+        center_y2 = h - border_thickness
+        center_x1 = border_thickness
+        center_x2 = w - border_thickness
+        
+        if center_y2 <= center_y1 or center_x2 <= center_x1:
+            return 0
             
-            if h_lines > 2 and v_lines > 2:
-                return 50
-            elif h_lines > 1 or v_lines > 1:
-                return 25
-        return 0
+        center = gray[center_y1:center_y2, center_x1:center_x2]
+        
+        if center.size == 0:
+            return 0
+        
+        # Calculate mean brightness of borders vs center
+        border_means = [
+            np.mean(top_border),
+            np.mean(bottom_border),
+            np.mean(left_border),
+            np.mean(right_border)
+        ]
+        center_mean = np.mean(center)
+        avg_border_mean = np.mean(border_means)
+        
+        # Phone borders are typically MUCH darker than screen content
+        border_contrast = center_mean - avg_border_mean
+        
+        # Check border consistency (phone bezels are uniformly dark)
+        border_std = np.std(border_means)
+        
+        # Detect edges at border boundaries (sharp transition = phone bezel)
+        edges = cv2.Canny(gray, 50, 150)
+        
+        # Check for rectangular frame pattern - edges should be strong at borders
+        edge_margin = 5
+        top_edges = np.sum(edges[max(0, border_thickness-edge_margin):min(h, border_thickness+edge_margin), :]) / w if w > 0 else 0
+        bottom_edges = np.sum(edges[max(0, h-border_thickness-edge_margin):min(h, h-border_thickness+edge_margin), :]) / w if w > 0 else 0
+        left_edges = np.sum(edges[:, max(0, border_thickness-edge_margin):min(w, border_thickness+edge_margin)]) / h if h > 0 else 0
+        right_edges = np.sum(edges[:, max(0, w-border_thickness-edge_margin):min(w, w-border_thickness+edge_margin)]) / h if h > 0 else 0
+        
+        avg_edge_intensity = (top_edges + bottom_edges + left_edges + right_edges) / 4
+        
+        # Score calculation - LOWERED THRESHOLDS for better phone detection
+        score = 0
+        
+        # 1. Dark borders with good contrast (40 points) - PRIMARY INDICATOR
+        if border_contrast > 30 and avg_border_mean < 90:  # Dark borders, bright center (more lenient)
+            score += 40
+        elif border_contrast > 18 and avg_border_mean < 110:  # More lenient
+            score += 25
+        elif border_contrast > 10:  # Very lenient
+            score += 15
+        
+        # 2. Consistent border darkness (30 points) - STRONG INDICATOR
+        if border_std < 20:  # Very uniform borders (more lenient)
+            score += 30
+        elif border_std < 30:  # More lenient
+            score += 18
+        
+        # 3. Rectangular frame edges (30 points) - STRONG INDICATOR
+        if avg_edge_intensity > 12:  # Strong rectangular frame (more lenient)
+            score += 30
+        elif avg_edge_intensity > 6:  # More lenient
+            score += 18
+        
+        return min(score, 100)
+    
+    def detect_rectangular_boundary(self, face_img):
+        """Legacy method - redirects to enhanced phone border detection"""
+        return self.detect_phone_border(face_img)
     
     def detect_lighting_uniformity(self, face_img):
         """Analyze lighting - phone screens have artificial uniform backlight"""
@@ -357,6 +434,71 @@ class TextureAntiSpoofing:
             return 20
         return 0
     
+    def detect_video_playback(self, face_img, bbox_key):
+        """
+        Detect video playback on phone screens by tracking temporal changes
+        Videos have rapid brightness/color changes that static photos don't have
+        
+        Args:
+            face_img: Current face image
+            bbox_key: Unique key for this face location
+            
+        Returns:
+            Video score (0-100, higher = more likely video)
+        """
+        try:
+            # Calculate current frame statistics
+            gray = cv2.cvtColor(face_img, cv2.COLOR_BGR2GRAY)
+            mean_brightness = np.mean(gray)
+            mean_color = np.mean(face_img, axis=(0, 1))  # BGR means
+            
+            current_stats = {
+                'brightness': mean_brightness,
+                'color': mean_color
+            }
+            
+            # Initialize history for this bbox if needed
+            if bbox_key not in self.frame_history:
+                self.frame_history[bbox_key] = []
+            
+            # Add current stats to history
+            self.frame_history[bbox_key].append(current_stats)
+            
+            # Keep only recent frames
+            if len(self.frame_history[bbox_key]) > self.max_history:
+                self.frame_history[bbox_key].pop(0)
+            
+            # Need at least 5 frames to detect video patterns
+            if len(self.frame_history[bbox_key]) < 5:
+                return 0
+            
+            # Calculate temporal variations
+            history = self.frame_history[bbox_key]
+            brightness_changes = []
+            color_changes = []
+            
+            for i in range(1, len(history)):
+                # Brightness change
+                brightness_diff = abs(history[i]['brightness'] - history[i-1]['brightness'])
+                brightness_changes.append(brightness_diff)
+                
+                # Color change
+                color_diff = np.linalg.norm(history[i]['color'] - history[i-1]['color'])
+                color_changes.append(color_diff)
+            
+            # Videos have moderate-to-high variance in changes (scene transitions, motion)
+            # Real faces have low variance (stable person)
+            # Static photos have near-zero variance
+            brightness_variance = np.std(brightness_changes) if brightness_changes else 0
+            color_variance = np.std(color_changes) if color_changes else 0
+            
+            # Normalize scores (videos typically have variance > 2 for brightness, > 3 for color)
+            video_score = min((brightness_variance / 2.0) * 50 + (color_variance / 3.0) * 50, 100)
+            
+            return video_score
+        except:
+            return 0
+    
     def predict(self, image, bbox):
         """
         Predict if face is real or fake using texture analysis
@@ -368,20 +510,44 @@ class TextureAntiSpoofing:
         Returns:
             (is_real, confidence, label, details)
         """
-        # Extract face region
+        # Extract face region WITH EXPANDED BORDER to catch phone bezels!
         x1, y1, x2, y2 = bbox
+        
+        # Calculate face dimensions
+        face_width = x2 - x1
+        face_height = y2 - y1
+        
+        # EXPAND the region by 30% on all sides to catch phone borders
+        # This is CRITICAL - phone bezels are OUTSIDE the detected face region!
+        expansion = 0.30  # 30% expansion
+        expand_x = int(face_width * expansion)
+        expand_y = int(face_height * expansion)
+        
+        # Expanded bounding box (for border detection)
+        x1_expanded = x1 - expand_x
+        y1_expanded = y1 - expand_y
+        x2_expanded = x2 + expand_x
+        y2_expanded = y2 + expand_y
         
         # Ensure coordinates are within image bounds
         h, w = image.shape[:2]
         x1, y1 = max(0, x1), max(0, y1)
         x2, y2 = min(w, x2), min(h, y2)
+        x1_expanded = max(0, x1_expanded)
+        y1_expanded = max(0, y1_expanded)
+        x2_expanded = min(w, x2_expanded)
+        y2_expanded = min(h, y2_expanded)
         
+        # Extract face region (for texture analysis)
         face = image[y1:y2, x1:x2]
+        
+        # Extract EXPANDED region (for border detection)
+        face_expanded = image[y1_expanded:y2_expanded, x1_expanded:x2_expanded]
         
         if face.size == 0:
             return False, 0.0, "Invalid", {}
         
-        # Calculate multiple features
+        # Calculate multiple features on face region
         texture_score = self.calculate_texture_score(face)
         edge_density = self.calculate_edge_density(face)
         color_diversity = self.calculate_color_diversity(face)
@@ -395,13 +561,22 @@ class TextureAntiSpoofing:
         # PHONE SCREEN SPECIFIC DETECTION
         saturation_anomaly = self.detect_color_saturation(face)
         depth_score = self.detect_depth_gradient(face)
-        boundary_score = self.detect_rectangular_boundary(face)
+        
+        # CRITICAL: Use EXPANDED region for border detection to catch phone bezels!
+        # Phone borders are OUTSIDE the face region, so we must look wider
+        boundary_score = self.detect_phone_border(face_expanded)
+        
         lighting_uniformity = self.detect_lighting_uniformity(face)
+        
+        # NEW: Video detection - track temporal changes
+        bbox_key = f"{x1}_{y1}_{x2}_{y2}"
+        video_score = self.detect_video_playback(face, bbox_key)
         
         scores = {
             'texture': texture_score,
             'edges': edge_density,
             'color': color_diversity,
+            'video': video_score,  # NEW
             'moire': moire_score,
             'reflection': reflection_score,
             'noise': noise_score,
@@ -466,52 +641,116 @@ class TextureAntiSpoofing:
         # Detect phone screens while allowing real faces
         phone_screen_indicators = 0
         
-        # BALANCED phone detection - Use tiered thresholds
+        # SMART phone detection - BALANCED approach with REAL FACE PROTECTION
         phone_screen_indicators = 0
         strong_phone_signals = 0  # Track strong evidence
         
-        # Strong evidence thresholds (clear phone characteristics)
-        if depth_score > 30:  # Very flat
+        # CRITICAL: Real face protection - if these are good, it's likely real
+        # LOWERED thresholds to better protect real faces
+        is_likely_real_face = (
+            texture_score > 30 and  # Good texture (was 40)
+            edge_density > 2.5 and  # Good edges (was 3)
+            color_diversity > 6 and # Good color variety (was 8)
+            noise_score > 1.5       # Natural noise (was 2)
+        )
+        
+        # If it looks like a real face, be MUCH more strict about phone detection
+        depth_threshold_strong = 35 if is_likely_real_face else 28
+        depth_threshold_weak = 22 if is_likely_real_face else 16
+        
+        # PHONE BORDER/BEZEL is the PRIMARY indicator - most reliable!
+        # LOWERED thresholds to catch phone bezels more easily
+        border_threshold_strong = 50 if is_likely_real_face else 35  # Strong phone bezel detection (was 60/45)
+        border_threshold_weak = 28 if is_likely_real_face else 18    # Weak phone bezel detection (was 35/25)
+        
+        lighting_threshold_strong = 35 if is_likely_real_face else 27
+        lighting_threshold_weak = 22 if is_likely_real_face else 16
+        moire_threshold_strong = 40 if is_likely_real_face else 32
+        moire_threshold_weak = 25 if is_likely_real_face else 19
+        
+        # PHONE BORDER DETECTION - PRIMARY INDICATOR (Most Reliable!)
+        # Real faces DON'T have dark rectangular frames around them
+        # Phone screens ALWAYS have visible bezels/borders
+        if boundary_score > border_threshold_strong:  # Clear phone bezel detected!
+            phone_screen_indicators += 2  # DOUBLE weight - most reliable indicator
+            strong_phone_signals += 2
+        elif boundary_score > border_threshold_weak:  # Possible phone bezel
             phone_screen_indicators += 1
             strong_phone_signals += 1
-        elif depth_score > 18:  # Somewhat flat
+        
+        # Supporting indicators (less reliable than border)
+        if depth_score > depth_threshold_strong:  # Very flat
+            phone_screen_indicators += 1
+            strong_phone_signals += 1
+        elif depth_score > depth_threshold_weak:  # Somewhat flat
             phone_screen_indicators += 1
             
-        if boundary_score > 35:  # Clear bezel
+        if lighting_uniformity > lighting_threshold_strong:  # Very uniform
             phone_screen_indicators += 1
             strong_phone_signals += 1
-        elif boundary_score > 22:
+        elif lighting_uniformity > lighting_threshold_weak:
             phone_screen_indicators += 1
             
-        if lighting_uniformity > 30:  # Very uniform
+        if moire_score > moire_threshold_strong:  # Strong pattern
             phone_screen_indicators += 1
             strong_phone_signals += 1
-        elif lighting_uniformity > 18:
-            phone_screen_indicators += 1
-            
-        if moire_score > 35:  # Strong pattern
-            phone_screen_indicators += 1
-            strong_phone_signals += 1
-        elif moire_score > 22:
+        elif moire_score > moire_threshold_weak:
             phone_screen_indicators += 1
         
         # Weaker supporting evidence
-        if reflection_score > 8:
+        if reflection_score > 9:  # High reflection
             phone_screen_indicators += 1
-        if saturation_anomaly > 35:
+        if saturation_anomaly > 38:  # Very unusual color
             phone_screen_indicators += 1
-        if texture_score > 250:
+        if texture_score > 240:  # Extremely high texture (oversharpened screen)
             phone_screen_indicators += 1
         
-        # Apply penalties based on evidence strength
-        if strong_phone_signals >= 2:  # 2+ strong signals = definitely phone
-            confidence = confidence * 0.25  # 75% penalty
-        elif phone_screen_indicators >= 4:  # 4+ total signals = likely phone
-            confidence = confidence * 0.40  # 60% penalty
-        elif phone_screen_indicators >= 3:  # 3 signals = possible phone
-            confidence = confidence * 0.60  # 40% penalty
-        elif phone_screen_indicators >= 2:  # 2 signals = weak evidence
-            confidence = confidence * 0.80  # 20% penalty
+        # NEW: Check for unusual aspect ratios (horizontal phone, videos)
+        h_roi, w_roi = face.shape[:2]
+        aspect_ratio = w_roi / h_roi if h_roi > 0 else 1.0
+        
+        # Horizontal phones or rotated screens (wide aspect ratios)
+        if aspect_ratio > 1.3 or aspect_ratio < 0.7:
+            phone_screen_indicators += 1
+            # Boost if very wide/tall
+            if aspect_ratio > 1.5 or aspect_ratio < 0.6:
+                strong_phone_signals += 1
+        
+        # NEW: Video playback detection (videos on phones have characteristic temporal changes)
+        if video_score > 25:  # High temporal variation = likely video
+            phone_screen_indicators += 1
+            strong_phone_signals += 1  # Video is strong evidence of screen
+        
+        # Apply penalties based on evidence strength - PHONE BORDER REQUIRED!
+        # CRITICAL: Phone border is MANDATORY - without it, it's NOT a phone
+        has_phone_border = boundary_score > (border_threshold_weak if is_likely_real_face else border_threshold_weak * 0.7)
+        
+        # REAL FACE PROTECTION: Don't penalize if likely real face unless VERY strong evidence
+        if is_likely_real_face:
+            # For real faces, need phone border + other strong indicators
+            if has_phone_border and strong_phone_signals >= 3:  # Border + 3 strong
+                confidence = confidence * 0.25
+            elif has_phone_border and strong_phone_signals >= 2 and phone_screen_indicators >= 5:
+                confidence = confidence * 0.40
+            # Otherwise, assume it's real (no penalty even if some indicators present)
+        else:
+            # For non-real-looking faces, STILL require phone border as primary evidence
+            if has_phone_border:
+                # Phone border detected - apply penalties based on additional evidence
+                if strong_phone_signals >= 3:  # Border + 2 more strong signals
+                    confidence = confidence * 0.20
+                elif phone_screen_indicators >= 4:  # Border + 3 more indicators
+                    confidence = confidence * 0.35
+                elif phone_screen_indicators >= 3:  # Border + 2 more indicators
+                    confidence = confidence * 0.55
+                else:  # Just border, weak additional evidence
+                    confidence = confidence * 0.70
+            else:
+                # No phone border - can't be a phone screen, minimal penalty only
+                if strong_phone_signals >= 3 and phone_screen_indicators >= 6:
+                    # Extreme case: many indicators but no border (paper photo?)
+                    confidence = confidence * 0.60
+                # Otherwise no penalty - no border = not a phone
         
         # Additional rules for clear cases
         # MASSIVE BOOST for real faces - assume real unless proven fake

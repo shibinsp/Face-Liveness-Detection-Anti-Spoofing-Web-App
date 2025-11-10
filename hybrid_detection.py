@@ -139,57 +139,85 @@ class HybridLivenessDetection:
                 reflection = scores.get('reflection', 0)
                 texture = scores.get('texture', 0)
                 edges = scores.get('edges', 0)
+                video = scores.get('video', 0)
+                color = scores.get('color', 0)
+                noise = scores.get('noise', 0)
                 
-                # SMART phone detection - Use COMBINATION logic, not just thresholds
+                # SMART phone detection - BALANCED approach with REAL FACE PROTECTION
                 phone_indicators = 0
                 phone_reasons = []
-                
-                # STRONG indicators (high confidence it's a phone)
                 strong_indicators = 0
                 
-                # Check critical phone characteristics
-                if depth > 30:  # Very flat = strong phone indicator
+                # CRITICAL: Real face protection - if these are good, it's likely real
+                # LOWERED thresholds to better protect real faces
+                is_likely_real_face = (
+                    texture > 30 and  # Good texture (was 40)
+                    edges > 2.5 and   # Good edges (was 3)
+                    color > 6 and     # Good color variety (was 8)
+                    noise > 1.5       # Natural noise (was 2)
+                )
+                
+                # If it looks like a real face, be MUCH more strict about phone detection
+                depth_threshold_strong = 35 if is_likely_real_face else 28
+                depth_threshold_weak = 22 if is_likely_real_face else 16
+                
+                # PHONE BORDER/BEZEL is the PRIMARY indicator - most reliable!
+                # LOWERED thresholds to catch phone bezels more easily
+                border_threshold_strong = 50 if is_likely_real_face else 35  # Strong phone bezel (was 60/45)
+                border_threshold_weak = 28 if is_likely_real_face else 18    # Weak phone bezel (was 35/25)
+                
+                lighting_threshold_strong = 35 if is_likely_real_face else 27
+                lighting_threshold_weak = 22 if is_likely_real_face else 16
+                moire_threshold_strong = 40 if is_likely_real_face else 32
+                moire_threshold_weak = 25 if is_likely_real_face else 19
+                
+                # PHONE BORDER DETECTION - PRIMARY INDICATOR (Most Reliable!)
+                # Real faces DON'T have dark rectangular frames around them
+                # Phone screens ALWAYS have visible bezels/borders
+                if boundary > border_threshold_strong:  # Clear phone bezel detected!
+                    phone_indicators += 2  # DOUBLE weight - most reliable indicator
+                    strong_indicators += 2
+                    phone_reasons.append(f'BEZEL:{boundary:.0f}')
+                elif boundary > border_threshold_weak:  # Possible phone bezel
+                    phone_indicators += 1
+                    strong_indicators += 1
+                    phone_reasons.append(f'bezel:{boundary:.0f}')
+                
+                # Supporting indicators (less reliable than border)
+                if depth > depth_threshold_strong:  # Very flat
                     phone_indicators += 1
                     strong_indicators += 1
                     phone_reasons.append(f'FLAT:{depth:.0f}')
-                elif depth > 18:  # Somewhat flat
+                elif depth > depth_threshold_weak:
                     phone_indicators += 1
                     phone_reasons.append(f'flat:{depth:.0f}')
-                    
-                if boundary > 35:  # Clear bezel = strong indicator
-                    phone_indicators += 1
-                    strong_indicators += 1
-                    phone_reasons.append(f'BEZEL:{boundary:.0f}')
-                elif boundary > 22:
-                    phone_indicators += 1
-                    phone_reasons.append(f'bezel:{boundary:.0f}')
                 
-                if lighting > 30:  # Very uniform = strong indicator
+                if lighting > lighting_threshold_strong:  # Very uniform
                     phone_indicators += 1
                     strong_indicators += 1
                     phone_reasons.append(f'BACKLIGHT:{lighting:.0f}')
-                elif lighting > 18:
+                elif lighting > lighting_threshold_weak:
                     phone_indicators += 1
                     phone_reasons.append(f'backlight:{lighting:.0f}')
                 
-                if moire > 35:  # Strong screen pattern
+                if moire > moire_threshold_strong:  # Strong pattern
                     phone_indicators += 1
                     strong_indicators += 1
                     phone_reasons.append(f'MOIRE:{moire:.0f}')
-                elif moire > 22:
+                elif moire > moire_threshold_weak:
                     phone_indicators += 1
                     phone_reasons.append(f'moire:{moire:.0f}')
                 
                 # Supporting indicators (weaker signals)
-                if reflection > 8:  # High reflection
+                if reflection > 9:
                     phone_indicators += 1
                     phone_reasons.append(f'reflect:{reflection:.0f}')
                 
-                if saturation > 35:  # Very unusual color
+                if saturation > 38:
                     phone_indicators += 1
                     phone_reasons.append(f'color:{saturation:.0f}')
                 
-                if texture > 250:  # Extremely high texture
+                if texture > 240:
                     phone_indicators += 1
                     phone_reasons.append(f'texture:{texture:.0f}')
                 
@@ -203,10 +231,39 @@ class HybridLivenessDetection:
                     phone_indicators += 1
                     phone_reasons.append(f'small:{face_ratio*100:.1f}%')
                 
-                # DECISION LOGIC: Need either strong evidence OR multiple weak indicators
-                # Option 1: 2+ STRONG indicators = definitely phone
-                # Option 2: 4+ total indicators = likely phone
-                likely_phone = (strong_indicators >= 2) or (phone_indicators >= 4)
+                # NEW: Check for unusual aspect ratios (horizontal phone, videos)
+                aspect_ratio = w / h if h > 0 else 1.0
+                
+                # Horizontal phones or rotated screens (wide/tall aspect ratios)
+                if aspect_ratio > 1.3 or aspect_ratio < 0.7:
+                    phone_indicators += 1
+                    phone_reasons.append(f'aspect:{aspect_ratio:.2f}')
+                    # Boost if very wide/tall
+                    if aspect_ratio > 1.5 or aspect_ratio < 0.6:
+                        strong_indicators += 1
+                
+                # NEW: Video playback detection (videos on phones have characteristic temporal changes)
+                if video > 25:  # High temporal variation = likely video
+                    phone_indicators += 1
+                    strong_indicators += 1  # Video is strong evidence of screen
+                    phone_reasons.append(f'VIDEO:{video:.0f}')
+                
+                # SMART DECISION LOGIC - PHONE BORDER IS MANDATORY!
+                # Check if phone border is detected (most reliable indicator)
+                has_phone_border = boundary > (border_threshold_weak if is_likely_real_face else border_threshold_weak * 0.7)
+                
+                if is_likely_real_face:
+                    # For real faces, need phone border + strong additional evidence
+                    likely_phone = has_phone_border and (strong_indicators >= 3 or (strong_indicators >= 2 and phone_indicators >= 5))
+                else:
+                    # For non-real-looking faces, STILL require phone border as primary evidence
+                    if has_phone_border:
+                        # Phone border detected - check additional evidence
+                        likely_phone = (strong_indicators >= 3) or (phone_indicators >= 4)
+                    else:
+                        # No phone border - NOT a phone (even with other indicators)
+                        # Only mark as phone if EXTREME evidence (paper photo case)
+                        likely_phone = (strong_indicators >= 3 and phone_indicators >= 6)
                 
                 face_result = {
                     'bbox': (x, y, w, h),
