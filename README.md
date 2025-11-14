@@ -10,6 +10,19 @@ A comprehensive real-time face liveness detection and anti-spoofing application 
 
 **✨ NEW:** Advanced anti-spoofing detection with texture analysis + ONNX models!
 
+## 🐳 Quick Deploy with Docker
+
+```bash
+# Clone and deploy in seconds
+git clone https://github.com/shibinsp/Face-Liveness-Detection-Anti-Spoofing-Web-App.git
+cd Face-Liveness-Detection-Anti-Spoofing-Web-App
+docker-compose up -d
+
+# Access at http://localhost:8504
+```
+
+**📖 Full Docker guide:** See [DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md) for production deployment, SSL setup, and cloud deployment.
+
 ## 🚀 Features
 
 ### ✅ Implemented Features

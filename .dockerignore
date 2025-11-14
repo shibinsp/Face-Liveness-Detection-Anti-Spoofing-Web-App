@@ -1,0 +1,78 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation (optional, include if you want smaller image)
+# docs/
+# *.md
+
+# Logs (will be mounted as volume)
+logs/
+*.log
+*.csv
+
+# Data (will be mounted as volume)
+data/
+*.db
+faces/
+
+# Test files
+tests/
+test_*.py
+*_test.py
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker files
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Jupyter notebooks
+*.ipynb
+.ipynb_checkpoints/
+
+# Environment variables (security)
+.env
+.env.local
+*.pem
+*.key
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+
+# Large model files (download during build)
+# models/
+# *.onnx
+# *.pth
+
