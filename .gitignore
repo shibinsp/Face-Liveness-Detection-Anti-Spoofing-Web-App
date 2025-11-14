@@ -33,6 +33,8 @@ env/
 
 # Logs
 *.log
+*.csv
+liveness_detection_log.csv
 antispoofing_log.csv
 detection_log.csv
 
@@ -55,4 +57,11 @@ models/*.pth
 # Temporary files
 *.tmp
 temp/
+
+# User data (authentication system)
+data/
+data/users.db
+data/faces/
+*.db
+*.db-journal
 

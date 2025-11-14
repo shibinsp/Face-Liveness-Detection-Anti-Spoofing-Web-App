@@ -67,14 +67,47 @@ A comprehensive real-time face liveness detection and anti-spoofing application 
 
 ## 🎯 Quick Start
 
-### Option 1: Anti-Spoofing Detection (Recommended - Works Immediately) ⭐
+### Option 1: Face Authentication System (Complete Solution) ⭐⭐⭐
+
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Run the authentication system
+streamlit run apps/app_auth.py
+```
+
+**Complete Authentication System:**
+- ✅ User registration with face capture
+- ✅ Secure login with face recognition + liveness detection
+- ✅ YOLO v11 for face detection
+- ✅ DeepFace for face recognition
+- ✅ Two-factor authentication (Face + Liveness)
+- ✅ Anti-spoofing protection
+- ✅ User dashboard and history
+
+See [AUTH_SYSTEM_GUIDE.md](AUTH_SYSTEM_GUIDE.md) for complete documentation.
+
+---
+
+### Option 2: Hybrid Detection (Liveness + Anti-Spoofing) ⭐
+
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Run the hybrid detection app
+streamlit run apps/app_hybrid.py
+```
+
+### Option 3: Anti-Spoofing Detection (Works Immediately)
 
 ```bash
 # Install dependencies
 pip install streamlit opencv-python numpy pandas
 
 # Run the anti-spoofing app
-streamlit run app_antispoofing.py
+streamlit run apps/app_antispoofing.py
 ```
 
 **Features Available:**
@@ -89,14 +122,14 @@ streamlit run app_antispoofing.py
 
 ---
 
-### Option 2: Enhanced Detection (Works Immediately)
+### Option 4: Enhanced Detection (Works Immediately)
 
 ```bash
 # Install dependencies
 pip install streamlit opencv-python numpy pandas
 
 # Run the enhanced app
-streamlit run app_enhanced.py
+streamlit run apps/app_enhanced.py
 ```
 
 **Features Available:**
@@ -110,7 +143,7 @@ streamlit run app_enhanced.py
 
 ---
 
-### Option 3: Full InsightFace Version (Advanced Liveness + Anti-Spoofing)
+### Option 5: Full InsightFace Version (Advanced Liveness + Anti-Spoofing)
 
 **Prerequisites:**
 1. Install Visual C++ Build Tools
@@ -128,7 +161,7 @@ pip install -r requirements.txt
 
 **Run:**
 ```bash
-streamlit run app.py
+streamlit run apps/app.py
 ```
 
 **Features Available:**
@@ -219,38 +252,32 @@ pip install onnxruntime-gpu
 
 ## 🏗️ Project Structure
 
+See [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) for detailed structure.
+
 ```
 Face-Liveness-Detection-Anti-Spoofing-Web-App/
 │
-├── 📱 Applications/
-│   ├── app_antispoofing.py     # Anti-spoofing detection ⭐ RECOMMENDED
-│   ├── app_enhanced.py         # Enhanced detection with streaming
-│   ├── app.py                  # Full InsightFace version
-│   └── app_simple.py           # Basic face detection
+├── apps/                       # Application entry points
+│   ├── app_hybrid.py          # Hybrid detection ⭐ RECOMMENDED
+│   ├── app_antispoofing.py    # Anti-spoofing detection
+│   ├── app_enhanced.py        # Enhanced detection
+│   ├── app.py                 # Full InsightFace version
+│   └── app_simple.py          # Basic face detection
 │
-├── 🛡️ Anti-Spoofing Module/
-│   └── anti_spoofing.py        # Core anti-spoofing algorithms
+├── core/                      # Core modules
+│   ├── anti_spoofing.py       # Anti-spoofing algorithms
+│   ├── hybrid_detection.py    # Hybrid detection logic
+│   └── mediapipe_liveness.py  # MediaPipe liveness
 │
-├── 📚 Documentation/
-│   ├── README.md               # Main documentation (this file)
-│   ├── QUICK_START.md          # Fast setup guide
-│   ├── INSTALLATION.md         # Complete install instructions
-│   ├── ANTISPOOFING_GUIDE.md   # Anti-spoofing details
-│   ├── FEATURES.md             # Feature documentation
-│   └── INSTALL_GUIDE.md        # InsightFace setup (legacy)
+├── docs/                      # Documentation
+│   ├── HYBRID_DETECTION_GUIDE.md
+│   ├── ANTISPOOFING_GUIDE.md
+│   └── ... (other docs)
 │
-├── 📦 Configuration/
-│   └── requirements.txt        # All dependencies
-│
-├── 🗂️ Data Directories/
-│   ├── models/                 # ONNX models (optional)
-│   │   └── README.md          # Model download instructions
-│   └── sample_images/         # Test images
-│
-└── 📊 Logs (Auto-generated)/
-    ├── antispoofing_log.csv   # Anti-spoofing logs
-    ├── detection_log.csv      # Enhanced app logs
-    └── liveness_detection_log.csv  # InsightFace logs
+├── models/                    # ONNX models (download separately)
+├── sample_images/             # Test images
+├── requirements.txt            # Dependencies
+└── README.md                  # This file
 ```
 
 ## 🔧 Technical Details
