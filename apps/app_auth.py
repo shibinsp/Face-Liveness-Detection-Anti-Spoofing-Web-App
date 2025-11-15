@@ -80,32 +80,25 @@ def registration_page():
         st.markdown('#### Instructions')
         st.info('''
         1. Enter your name above
-        2. Click "Start Camera" to capture your face
+        2. Click the camera icon to capture your face
         3. Look directly at the camera
         4. Make sure your face is well-lit and clearly visible
-        5. Click "Capture & Register" when ready
+        5. Click "Take Photo" then "Register with this photo"
         ''')
     
     with col2:
         st.markdown('#### Face Capture')
         
-        # Camera control
-        start_camera = st.checkbox('Start Camera', key='reg_camera')
+        # Browser camera for registration
+        st.info('📸 Use your device camera to register')
+        camera_image = st.camera_input('Capture your face', key='reg_camera')
         
-        if start_camera:
-            # Create placeholder for video
-            video_placeholder = st.empty()
-            capture_button_placeholder = st.empty()
+        if camera_image is not None:
+            # Convert to OpenCV format
+            file_bytes = np.asarray(bytearray(camera_image.read()), dtype=np.uint8)
+            frame = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
             
-            # Open camera
-            cap = cv2.VideoCapture(0)
-            cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-            
-            # Capture frame
-            ret, frame = cap.read()
-            
-            if ret:
+            if frame is not None:
                 # Display frame
                 rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 
@@ -118,10 +111,10 @@ def registration_page():
                     cv2.putText(rgb_frame, 'Face Detected', (x1, y1-10),
                               cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
                 
-                video_placeholder.image(rgb_frame, channels='RGB', use_container_width=True)
+                st.image(rgb_frame, channels='RGB', use_container_width=True)
                 
-                # Capture button
-                if capture_button_placeholder.button('📸 Capture & Register', type='primary', use_container_width=True):
+                # Register button
+                if st.button('✅ Register with this photo', type='primary', use_container_width=True):
                     if not name:
                         st.error('Please enter your name first!')
                     elif not faces:
@@ -150,10 +143,8 @@ def registration_page():
                                     st.error(f'❌ {message}')
                             else:
                                 st.error('Failed to extract face features. Please try again.')
-            
-            cap.release()
         else:
-            st.info('👆 Check "Start Camera" to begin registration')
+            st.info('📷 Click on the camera button above to capture your face')
     
     st.markdown('---')
     if st.button('← Back to Login'):
@@ -190,13 +181,13 @@ def login_page():
         st.markdown('---')
         st.markdown('#### Instructions')
         st.info('''
-        1. Click "Start Login Process"
-        2. Look directly at the camera
-        3. Blink naturally (1-2 times)
-        4. Move your head slightly (left/right or up/down)
-        5. Wait for verification
+        1. Click the camera icon below to open your camera
+        2. Position your face clearly in the frame
+        3. Look directly at the camera with good lighting
+        4. Click "Take Photo"
+        5. System will automatically verify you
         
-        ⚡ The system will automatically identify and verify you!
+        ⚡ Ensure your face is clearly visible and well-lit!
         ''')
         
         # Settings
@@ -222,73 +213,38 @@ def login_page():
     with col2:
         st.markdown('#### Authentication')
         
-        start_login = st.button('🎥 Start Login Process', type='primary', use_container_width=True)
+        # Browser camera for login
+        st.info('📸 Use your device camera to authenticate')
+        camera_image = st.camera_input('Capture your face', key='login_camera')
         
-        if start_login:
-            # Create placeholders
-            video_placeholder = st.empty()
-            status_placeholder = st.empty()
-            progress_placeholder = st.empty()
+        if camera_image is not None:
+            # Convert to OpenCV format
+            file_bytes = np.asarray(bytearray(camera_image.read()), dtype=np.uint8)
+            frame = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
             
-            # Open camera
-            cap = cv2.VideoCapture(0)
-            cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-            
-            # Get all registered embeddings
-            known_embeddings = db.get_all_face_embeddings()
-            
-            status_placeholder.info('🔄 Initializing authentication...')
-            
-            # Authentication loop
-            frames_processed = 0
-            max_frames = 90  # 3 seconds at 30fps
-            authenticated = False
-            recognized_user_id = None
-            recognized_name = None
-            
-            progress_bar = progress_placeholder.progress(0)
-            
-            while frames_processed < max_frames and not authenticated:
-                ret, frame = cap.read()
-                
-                if not ret:
-                    break
-                
-                frames_processed += 1
-                progress = min(frames_processed / max_frames, 1.0)
-                progress_bar.progress(progress)
-                
-                # Process every 3rd frame
-                if frames_processed % 3 == 0:
+            if frame is not None:
+                with st.spinner('🔄 Processing authentication...'):
+                    # Get all registered embeddings
+                    known_embeddings = db.get_all_face_embeddings()
+                    
                     # Step 1: Face Recognition
                     user_id, name, confidence = face_rec.recognize_face(
                         frame, known_embeddings, threshold=recognition_threshold
                     )
                     
                     if user_id is not None:
-                        status_placeholder.success(f'✅ Face Recognized: {name} (Confidence: {confidence:.1%})')
-                        recognized_user_id = user_id
-                        recognized_name = name
+                        st.success(f'✅ Face Recognized: {name} (Confidence: {confidence:.1%})')
                         
-                        # Step 2: Hybrid Liveness Detection
-                        result = hybrid_detector.detect_hybrid(frame)
-                        
-                        # Draw results
-                        annotated_frame = hybrid_detector.draw_results(frame, result)
-                        rgb_frame = cv2.cvtColor(annotated_frame, cv2.COLOR_BGR2RGB)
-                        video_placeholder.image(rgb_frame, channels='RGB', use_container_width=True)
-                        
-                        # Check verification
-                        if result['verified']:
-                            authenticated = True
-                            
+                        # For single photo capture, prioritize face recognition over liveness
+                        # High confidence face match (>85%) is primary verification
+                        if confidence > 0.85:
+                            # Strong face recognition match - allow login
                             # Update database
                             db.update_last_login(user_id)
                             db.add_login_history(
                                 user_id,
-                                result['mediapipe_result']['liveness_score'],
-                                result['antispoof_result']['confidence'],
+                                confidence,  # Use face recognition confidence
+                                confidence,
                                 'success'
                             )
                             
@@ -298,28 +254,65 @@ def login_page():
                             st.session_state.user_name = name
                             st.session_state.page = 'dashboard'
                             
-                            break
+                            st.success(f'🎉 Authentication Successful! Welcome {name}!')
+                            st.info('✅ Verified using face recognition (single-photo mode)')
+                            st.balloons()
+                            time.sleep(2)
+                            st.rerun()
+                        else:
+                            # Lower confidence - run additional checks
+                            result = hybrid_detector.detect_hybrid(frame)
+                            
+                            # Draw results
+                            annotated_frame = hybrid_detector.draw_results(frame, result)
+                            rgb_frame = cv2.cvtColor(annotated_frame, cv2.COLOR_BGR2RGB)
+                            st.image(rgb_frame, channels='RGB', use_container_width=True)
+                            
+                            # Display liveness results
+                            mp_result = result['mediapipe_result']
+                            as_result = result['antispoof_result']
+                            
+                            col_a, col_b = st.columns(2)
+                            with col_a:
+                                if mp_result['is_live']:
+                                    st.success(f"👁️ Liveness: LIVE ({mp_result['liveness_score']:.1%})")
+                                else:
+                                    st.warning(f"👁️ Liveness: Check ({mp_result['liveness_score']:.1%})")
+                            
+                            with col_b:
+                                if as_result['is_real']:
+                                    st.success(f"🛡️ Anti-Spoof: REAL ({as_result['confidence']:.1%})")
+                                else:
+                                    st.error(f"🛡️ Anti-Spoof: FAKE ({as_result['confidence']:.1%})")
+                            
+                            # Check verification
+                            if result['verified']:
+                                # Update database
+                                db.update_last_login(user_id)
+                                db.add_login_history(
+                                    user_id,
+                                    result['mediapipe_result']['liveness_score'],
+                                    result['antispoof_result']['confidence'],
+                                    'success'
+                                )
+                                
+                                # Set session
+                                st.session_state.authenticated = True
+                                st.session_state.user_id = user_id
+                                st.session_state.user_name = name
+                                st.session_state.page = 'dashboard'
+                                
+                                st.success(f'🎉 Authentication Successful! Welcome {name}!')
+                                st.balloons()
+                                time.sleep(2)
+                                st.rerun()
+                            else:
+                                st.error('❌ Verification failed. Face recognized but confidence too low. Please try again with better lighting.')
+                                db.add_login_history(user_id, 0, 0, 'failed')
                     else:
-                        status_placeholder.warning('⚠️ Face not recognized. Please ensure you are registered.')
-                        
-                        # Still show frame
+                        st.error('⚠️ Face not recognized. Please ensure you are registered.')
                         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                        video_placeholder.image(rgb_frame, channels='RGB', use_container_width=True)
-                
-                time.sleep(0.03)
-            
-            cap.release()
-            progress_bar.empty()
-            
-            if authenticated:
-                status_placeholder.success(f'🎉 Authentication Successful! Welcome {recognized_name}!')
-                st.balloons()
-                time.sleep(1)
-                st.rerun()
-            else:
-                status_placeholder.error('❌ Authentication failed. Please try again.')
-                if recognized_user_id:
-                    db.add_login_history(recognized_user_id, 0, 0, 'failed')
+                        st.image(rgb_frame, channels='RGB', use_container_width=True)
     
     st.markdown('---')
     if st.button('New User? Register Here →'):

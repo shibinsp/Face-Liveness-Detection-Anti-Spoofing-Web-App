@@ -6,7 +6,10 @@ WORKDIR /app
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
-    libgl1-mesa-glx \
+    build-essential \
+    g++ \
+    gcc \
+    libgl1 \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
@@ -17,8 +20,10 @@ RUN apt-get update && apt-get install -y \
     libavformat-dev \
     libswscale-dev \
     libv4l-dev \
+    libportaudio2 \
     wget \
     git \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
@@ -41,19 +46,19 @@ RUN if [ ! -f yolo11n.pt ]; then \
     fi
 
 # Expose Streamlit port
-EXPOSE 8504
+EXPOSE 2524                                                                                                                                                                                                                                                                                                                                                                                                     
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:8504/_stcore/health || exit 1
+    CMD curl -f http://localhost:2524/_stcore/health || exit 1
 
 # Set environment variables
-ENV STREAMLIT_SERVER_PORT=8504
+ENV STREAMLIT_SERVER_PORT=2524
 ENV STREAMLIT_SERVER_ADDRESS=0.0.0.0
 ENV STREAMLIT_SERVER_HEADLESS=true
 ENV STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
 ENV STREAMLIT_SERVER_FILE_WATCHER_TYPE=none
 
 # Run the authentication app
-CMD ["streamlit", "run", "apps/app_auth.py", "--server.port=8504", "--server.address=0.0.0.0", "--server.headless=true"]
+CMD ["streamlit", "run", "apps/app_auth.py", "--server.port=2524", "--server.address=0.0.0.0", "--server.headless=true"]
 

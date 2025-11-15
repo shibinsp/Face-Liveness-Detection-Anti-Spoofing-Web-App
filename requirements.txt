@@ -6,7 +6,7 @@ pandas>=2.0.0
 mediapipe==0.10.13  # Stable version compatible with TensorFlow 2.16
 
 # Anti-spoofing package (recommended)
-anti-spoof>=0.1.0
+# anti-spoof>=0.1.0  # Not available on PyPI, commented out
 
 # For InsightFace (full version)
 insightface>=0.7.0
