@@ -1,78 +1,79 @@
-# Python cache
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
+*.egg-info/
+dist/
+build/
+*.egg
 
 # Virtual environments
 venv/
 env/
 ENV/
-.venv
 
-# IDE
+# IDEs
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# Git
-.git/
-.gitignore
-.gitattributes
-
-# Documentation (optional, include if you want smaller image)
-# docs/
-# *.md
-
-# Logs (will be mounted as volume)
-logs/
-*.log
-*.csv
-
-# Data (will be mounted as volume)
-data/
-*.db
-faces/
-
-# Test files
-tests/
-test_*.py
-*_test.py
-
-# OS files
+# OS
 .DS_Store
 Thumbs.db
 
-# Docker files
-Dockerfile
-docker-compose.yml
-.dockerignore
+# Git
+.git/
+.gitignore
 
-# Jupyter notebooks
-*.ipynb
-.ipynb_checkpoints/
+# Logs
+*.log
+logs/
 
-# Environment variables (security)
+# Node modules (for frontend)
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/build/
+
+# Data files (will be mounted as volumes)
+data/
+backend/data/
+*.db
+*.db-journal
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+
+# Documentation
+*.md
+docs/
+
+# Tests
+tests/
+*.test.js
+*.spec.js
+*.test.py
+*_test.py
+
+# Environment
 .env
 .env.local
+.env.*
 *.pem
 *.key
 
-# Build artifacts
-build/
-dist/
-*.egg-info/
-
-# Coverage reports
+# Coverage
 htmlcov/
 .coverage
-.coverage.*
-
-# Large model files (download during build)
-# models/
-# *.onnx
-# *.pth
+coverage/
 

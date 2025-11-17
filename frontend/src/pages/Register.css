@@ -1,0 +1,83 @@
+.register-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.register-card {
+  width: 100%;
+  max-width: 1000px;
+}
+
+.register-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.info-section h3,
+.camera-section h3 {
+  color: var(--color-dark-blue);
+  margin-bottom: 1rem;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.instructions-box,
+.info-box {
+  background-color: var(--color-light-blue);
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-top: 1.5rem;
+}
+
+.instructions-box h4,
+.info-box h4 {
+  color: var(--color-dark-blue);
+  margin-bottom: 0.75rem;
+}
+
+.instructions-box ol {
+  margin-left: 1.5rem;
+  color: var(--color-navy);
+}
+
+.instructions-box li {
+  margin-bottom: 0.5rem;
+}
+
+.info-box ul {
+  list-style: none;
+  padding: 0;
+  color: var(--color-navy);
+}
+
+.info-box li {
+  margin-bottom: 0.5rem;
+  padding-left: 0.5rem;
+}
+
+.footer-actions {
+  text-center;
+}
+
+@media (max-width: 992px) {
+  .register-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .register-container {
+    padding: 1rem;
+  }
+
+  .register-card {
+    padding: 1.5rem;
+  }
+}

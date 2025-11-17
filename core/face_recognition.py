@@ -205,53 +205,105 @@ class FaceRecognitionSystem:
         
         return float(similarity)
     
-    def recognize_face(self, image: np.ndarray, 
+    def recognize_face(self, image: np.ndarray,
                       known_embeddings: List[Tuple[int, str, np.ndarray]],
                       threshold: float = 0.6) -> Tuple[Optional[int], Optional[str], float]:
         """
         Recognize face from image against known embeddings
-        
+
         Args:
             image: Input image (BGR)
             known_embeddings: List of (user_id, name, embedding)
             threshold: Similarity threshold for recognition
-            
+
         Returns:
             (user_id, name, confidence) or (None, None, 0.0) if no match
         """
         # Detect faces
         faces = self.detect_faces(image)
-        
+
         if not faces:
             return None, None, 0.0
-        
+
         # Use largest face (closest to camera)
         largest_face = max(faces, key=lambda f: (f[2]-f[0]) * (f[3]-f[1]))
-        
+
         # Extract embedding
         embedding = self.extract_face_embedding(image, largest_face)
-        
+
         if embedding is None:
             return None, None, 0.0
-        
+
         # Compare with known embeddings
         best_match_id = None
         best_match_name = None
         best_similarity = 0.0
-        
+
         for user_id, name, known_embedding in known_embeddings:
             similarity = self.calculate_similarity(embedding, known_embedding)
-            
+
             if similarity > best_similarity:
                 best_similarity = similarity
                 best_match_id = user_id
                 best_match_name = name
-        
+
         # Check if above threshold
         if best_similarity >= threshold:
             return best_match_id, best_match_name, best_similarity
-        
+
         return None, None, best_similarity
+
+    def recognize_all_faces(self, image: np.ndarray,
+                           known_embeddings: List[Tuple[int, str, np.ndarray]],
+                           threshold: float = 0.6) -> List[Tuple[Optional[int], Optional[str], float, Tuple[int, int, int, int]]]:
+        """
+        Recognize ALL faces from image against known embeddings
+
+        Args:
+            image: Input image (BGR)
+            known_embeddings: List of (user_id, name, embedding)
+            threshold: Similarity threshold for recognition
+
+        Returns:
+            List of (user_id, name, confidence, bbox) for each detected face
+        """
+        # Detect all faces
+        faces = self.detect_faces(image)
+
+        if not faces:
+            return []
+
+        results = []
+
+        # Process EACH face
+        for face_bbox in faces:
+            # Extract embedding for this face
+            embedding = self.extract_face_embedding(image, face_bbox)
+
+            if embedding is None:
+                results.append((None, None, 0.0, face_bbox))
+                continue
+
+            # Compare with known embeddings
+            best_match_id = None
+            best_match_name = None
+            best_similarity = 0.0
+
+            for user_id, name, known_embedding in known_embeddings:
+                similarity = self.calculate_similarity(embedding, known_embedding)
+
+                if similarity > best_similarity:
+                    best_similarity = similarity
+                    best_match_id = user_id
+                    best_match_name = name
+
+            # Check if above threshold
+            if best_similarity >= threshold:
+                results.append((best_match_id, best_match_name, best_similarity, face_bbox))
+            else:
+                results.append((None, None, best_similarity, face_bbox))
+
+        return results
     
     def save_face_image(self, image: np.ndarray, user_name: str, 
                        save_dir: str = 'data/faces') -> str:

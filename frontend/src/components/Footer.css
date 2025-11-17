@@ -1,0 +1,257 @@
+.app-footer {
+  background: linear-gradient(135deg, var(--color-navy) 0%, var(--color-dark-blue) 100%);
+  color: var(--color-light-blue);
+  margin-top: auto;
+  border-top: 3px solid var(--color-medium-blue);
+  box-shadow: 0 -4px 20px rgba(13, 36, 64, 0.3);
+}
+
+.footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem 1.5rem 1rem;
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.footer-section h3,
+.footer-section h4 {
+  color: var(--color-white);
+  margin-bottom: 0.75rem;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+/* About Section */
+.footer-about {
+  padding-right: 2rem;
+}
+
+.footer-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.footer-logo-icon {
+  font-size: 1.5rem;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.footer-logo h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.footer-description {
+  color: var(--color-light-blue);
+  line-height: 1.5;
+  margin-bottom: 1rem;
+  font-size: 0.8rem;
+}
+
+.footer-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.footer-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.3rem 0.6rem;
+  background: rgba(123, 164, 208, 0.2);
+  border: 1px solid var(--color-medium-blue);
+  border-radius: 15px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--color-white);
+}
+
+.badge-icon {
+  font-size: 0.85rem;
+}
+
+/* Features, Security, Tech Sections */
+.footer-section ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.footer-section li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0;
+  color: var(--color-light-blue);
+  font-size: 0.8rem;
+  transition: all 0.3s ease;
+}
+
+.footer-section li:hover {
+  color: var(--color-white);
+  transform: translateX(3px);
+}
+
+.feature-icon,
+.tech-icon {
+  font-size: 1rem;
+}
+
+/* Footer Bottom */
+.footer-bottom {
+  background: rgba(13, 36, 64, 0.5);
+  border-top: 1px solid rgba(123, 164, 208, 0.3);
+  padding: 1rem 1.5rem;
+}
+
+.footer-bottom-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.footer-copyright p {
+  margin: 0.2rem 0;
+  color: var(--color-light-blue);
+  font-size: 0.75rem;
+}
+
+.footer-subtitle {
+  color: var(--color-medium-blue);
+  font-size: 0.7rem;
+  font-weight: 400;
+}
+
+.footer-links {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.footer-link {
+  color: var(--color-light-blue);
+  text-decoration: none;
+  font-size: 0.75rem;
+  transition: all 0.3s ease;
+}
+
+.footer-link:hover {
+  color: var(--color-white);
+  text-decoration: underline;
+}
+
+.footer-separator {
+  color: var(--color-medium-blue);
+}
+
+.footer-social {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.footer-version {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  background: rgba(231, 240, 250, 0.1);
+  border: 1px solid var(--color-medium-blue);
+  border-radius: 15px;
+}
+
+.version-label {
+  color: var(--color-medium-blue);
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.version-number {
+  color: var(--color-white);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .footer-content {
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+  }
+
+  .footer-about {
+    grid-column: 1 / -1;
+    padding-right: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .footer-content {
+    grid-template-columns: 1fr;
+    padding: 2rem 1rem;
+  }
+
+  .footer-about {
+    grid-column: 1;
+  }
+
+  .footer-bottom-content {
+    flex-direction: column;
+    text-align: center;
+    gap: 1.5rem;
+  }
+
+  .footer-links {
+    justify-content: center;
+  }
+
+  .footer-badges {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .footer-content {
+    padding: 1.5rem 1rem;
+  }
+
+  .footer-section h4 {
+    font-size: 1rem;
+  }
+
+  .footer-section li {
+    font-size: 0.85rem;
+  }
+
+  .footer-logo h3 {
+    font-size: 1.2rem;
+  }
+
+  .footer-description {
+    font-size: 0.85rem;
+  }
+
+  .footer-badge {
+    font-size: 0.75rem;
+    padding: 0.3rem 0.6rem;
+  }
+
+  .footer-links {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .footer-separator {
+    display: none;
+  }
+}

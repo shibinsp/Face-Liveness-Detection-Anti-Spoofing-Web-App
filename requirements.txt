@@ -34,6 +34,11 @@ tf-keras~=2.16.0  # Required for TensorFlow 2.16 + Keras 3.x compatibility
 protobuf>=4.25.3,<5  # Required by MediaPipe
 keras>=3.0.0
 
+# API Backend (for React frontend)
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+python-multipart>=0.0.17
+
 # Important Notes:
 # 1. Do NOT install jax or jaxlib - conflicts with ml_dtypes requirements
 # 2. tf-keras must match TensorFlow version (2.16.x for TF 2.16.x)

@@ -515,89 +515,17 @@ class HybridLivenessDetection:
     
     def draw_results(self, frame, result):
         """
-        SIMPLIFIED: Draw only REAL or FAKE
-        
+        Return clean frame without annotations
+
         Args:
             frame: Input frame (BGR)
             result: Detection result dict
-            
+
         Returns:
-            Annotated frame with simple REAL/FAKE label
+            Original frame without any annotations
         """
-        annotated = frame.copy()
-        h, w = frame.shape[:2]
-        
-        # Determine if REAL or FAKE
-        antispoof_result = result.get('antispoof_result', {})
-        mediapipe_result = result.get('mediapipe_result', {})
-        
-        # Simple logic: REAL = both pass, FAKE = either fails
-        is_real = result.get('verified', False)
-        
-        # Check for phone screen specifically
-        is_phone = antispoof_result.get('likely_phone', False)
-        
-        # DRAW BOUNDING BOXES FOR ALL FACES
-        all_faces = antispoof_result.get('all_faces', [])
-        
-        if len(all_faces) > 0:
-            # Draw box for EACH detected face
-            for face_data in all_faces:
-                x, y, w_box, h_box = face_data['bbox']
-                face_is_real = face_data['is_real']
-                face_is_phone = face_data['likely_phone']
-                
-                # Color coding for each face
-                if face_is_real:
-                    box_color = (0, 255, 0)  # GREEN = REAL
-                    label_text = "REAL"
-                else:
-                    box_color = (0, 0, 255)  # RED = FAKE
-                    if face_is_phone:
-                        label_text = "FAKE (Phone)"
-                    else:
-                        label_text = "FAKE"
-                
-                # Draw thick bounding box
-                cv2.rectangle(annotated, (x, y), (x+w_box, y+h_box), box_color, 5)
-                
-                # Draw label above face
-                label_size = cv2.getTextSize(label_text, cv2.FONT_HERSHEY_DUPLEX, 1.0, 2)[0]
-                cv2.rectangle(annotated, (x, y-50), (x+label_size[0]+15, y), box_color, -1)
-                cv2.putText(annotated, label_text, (x+8, y-18),
-                           cv2.FONT_HERSHEY_DUPLEX, 1.0, (255, 255, 255), 2)
-                
-                # Show phone indicators if detected
-                if face_is_phone:
-                    indicator_text = f"{face_data['phone_indicators']}/5"
-                    cv2.putText(annotated, indicator_text, (x, y+h_box+25),
-                               cv2.FONT_HERSHEY_SIMPLEX, 0.7, box_color, 2)
-        
-        # SIMPLE TOP STATUS
-        if is_real and not is_phone:
-            status_color = (0, 255, 0)  # Green
-            status_bg = (0, 180, 0)
-            status_text = "REAL PERSON"
-        elif is_phone:
-            status_color = (0, 0, 255)  # Red
-            status_bg = (0, 0, 180)
-            status_text = "PHONE SCREEN DETECTED"
-        else:
-            status_color = (0, 0, 255)  # Red
-            status_bg = (0, 0, 180)
-            status_text = "FAKE DETECTED"
-        
-        # Draw large status banner at top
-        cv2.rectangle(annotated, (0, 0), (w, 80), status_bg, -1)
-        
-        # Center text
-        text_size = cv2.getTextSize(status_text, cv2.FONT_HERSHEY_DUPLEX, 2.0, 4)[0]
-        text_x = (w - text_size[0]) // 2
-        
-        cv2.putText(annotated, status_text, (text_x, 55),
-                   cv2.FONT_HERSHEY_DUPLEX, 2.0, (255, 255, 255), 4)
-        
-        return annotated
+        # Return the original frame without any drawings
+        return frame
     
     def get_statistics(self):
         """
