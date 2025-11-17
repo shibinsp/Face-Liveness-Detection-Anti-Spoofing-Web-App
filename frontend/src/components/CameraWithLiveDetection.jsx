@@ -54,7 +54,7 @@ const CameraWithLiveDetection = ({ onCapture, disabled = false, securityLevel = 
       formData.append('image', screenshot);
       formData.append('security_level', securityLevel);
 
-      const response = await axios.post('http://localhost:8000/api/detect-live', formData);
+      const response = await axios.post('http://localhost:8021/api/detect-live', formData);
       const result = response.data;
 
       setLiveStatus(result);

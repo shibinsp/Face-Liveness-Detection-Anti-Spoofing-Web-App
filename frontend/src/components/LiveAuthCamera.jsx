@@ -39,7 +39,7 @@ const LiveAuthCamera = ({ onAuthStart, onAuthComplete, securityLevel = 3, recogn
       formData.append('image', screenshot);
       formData.append('security_level', securityLevel);
 
-      const response = await axios.post('http://localhost:8000/api/detect-live', formData);
+      const response = await axios.post('http://localhost:8021/api/detect-live', formData);
       return response.data;
     } catch (error) {
       console.error('Frame check error:', error);
@@ -59,7 +59,7 @@ const LiveAuthCamera = ({ onAuthStart, onAuthComplete, securityLevel = 3, recogn
       formData.append('recognition_threshold', recognitionThreshold);
       formData.append('security_level', securityLevel);
 
-      const response = await axios.post('http://localhost:8000/api/login', formData);
+      const response = await axios.post('http://localhost:8021/api/login', formData);
       return response.data;
     } catch (error) {
       console.error('Login attempt error:', error);
