@@ -11,7 +11,9 @@ services:
       - "8021:8021"
     volumes:
       # Persist user data and face embeddings
-      - ./backend/data:/app/backend/data
+      - ./data:/app/data
+      # Persist config for API keys
+      - ./config:/app/config
       # Persist logs
       - ./logs:/app/logs
       # Mount core modules

@@ -15,17 +15,6 @@ const Footer = () => {
             Advanced face authentication with liveness detection and anti-spoofing protection.
             Secure, fast, and reliable biometric authentication.
           </p>
-          <div className="footer-badges">
-            <span className="footer-badge">
-              <span className="badge-icon">✅</span> YOLO v11
-            </span>
-            <span className="footer-badge">
-              <span className="badge-icon">✅</span> DeepFace
-            </span>
-            <span className="footer-badge">
-              <span className="badge-icon">✅</span> MediaPipe
-            </span>
-          </div>
         </div>
 
         <div className="footer-section footer-features">
@@ -76,32 +65,6 @@ const Footer = () => {
             <li>
               <span className="feature-icon">⚡</span>
               Real-time Processing
-            </li>
-          </ul>
-        </div>
-
-        <div className="footer-section footer-tech">
-          <h4>Technology Stack</h4>
-          <ul>
-            <li>
-              <span className="tech-icon">⚛️</span>
-              React 18
-            </li>
-            <li>
-              <span className="tech-icon">⚡</span>
-              FastAPI
-            </li>
-            <li>
-              <span className="tech-icon">🧠</span>
-              TensorFlow
-            </li>
-            <li>
-              <span className="tech-icon">🎯</span>
-              YOLO v11
-            </li>
-            <li>
-              <span className="tech-icon">🐍</span>
-              Python 3.12
             </li>
           </ul>
         </div>

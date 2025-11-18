@@ -3,7 +3,7 @@ FastAPI Backend for Face Authentication System
 REST API endpoints for face recognition, liveness detection, and user management
 """
 
-from fastapi import FastAPI, File, UploadFile, HTTPException, Form
+from fastapi import FastAPI, File, UploadFile, HTTPException, Form, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -21,6 +21,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core import HybridLivenessDetection
 from core.database import UserDatabase
 from core.face_recognition import FaceRecognitionSystem
+from backend.api_auth import optional_api_key, api_key_manager
 
 # Initialize FastAPI
 app = FastAPI(
@@ -37,6 +38,34 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Request logging middleware
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    """Log all API requests with optional API key tracking"""
+    # Get API key from header
+    api_key = request.headers.get("x-api-key")
+    user_agent = request.headers.get("user-agent")
+    
+    # Process request
+    response = await call_next(request)
+    
+    # Log the request
+    status = "SUCCESS" if response.status_code < 400 else "ERROR"
+    if not api_key:
+        status = "NO_KEY"
+    elif not api_key_manager.verify_api_key(api_key):
+        status = "INVALID_KEY"
+    
+    api_key_manager.log_request(
+        request=request,
+        api_key=api_key,
+        status=status,
+        user_agent=user_agent,
+        response_status=response.status_code
+    )
+    
+    return response
 
 # Initialize systems
 db = UserDatabase()
