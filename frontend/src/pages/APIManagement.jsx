@@ -88,7 +88,7 @@ const APIManagement = () => {
   const fetchAPIKeys = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('http://localhost:8021/api/admin/api-keys');
+      const response = await axios.get('/api/admin/api-keys');
       setApiKeys(response.data.api_keys || []);
       setError('');
     } catch (err) {
@@ -101,7 +101,7 @@ const APIManagement = () => {
 
   const fetchUsageStats = async () => {
     try {
-      const response = await axios.get('http://localhost:8021/api/admin/api-usage');
+      const response = await axios.get('/api/admin/api-usage');
       setUsageStats(response.data.usage || {});
     } catch (err) {
       console.error('Failed to load usage stats:', err);
@@ -110,7 +110,7 @@ const APIManagement = () => {
 
   const fetchTimeline = async () => {
     try {
-      const response = await axios.get('http://localhost:8021/api/admin/api-timeline?days=7');
+      const response = await axios.get('/api/admin/api-timeline?days=7');
       setTimeline(response.data.timeline || {});
     } catch (err) {
       console.error('Failed to load timeline:', err);
@@ -119,7 +119,7 @@ const APIManagement = () => {
 
   const fetchKeyLogs = async (keyPrefix) => {
     try {
-      const response = await axios.get(`http://localhost:8021/api/admin/api-logs/${keyPrefix}?limit=50`);
+      const response = await axios.get(`/api/admin/api-logs/${keyPrefix}?limit=50`);
       setSelectedKeyLogs({
         keyPrefix,
         logs: response.data.logs || [],
@@ -151,7 +151,7 @@ const APIManagement = () => {
         payload.rate_limit = parseInt(newKeyRateLimit);
       }
 
-      const response = await axios.post('http://localhost:8021/api/admin/api-keys', payload);
+      const response = await axios.post('/api/admin/api-keys', payload);
 
       setCreatedKey(response.data.key);
       setSuccess('API Key created successfully!');
@@ -173,7 +173,7 @@ const APIManagement = () => {
     }
 
     try {
-      await axios.delete(`http://localhost:8021/api/admin/api-keys/${keyPrefix}`);
+      await axios.delete(`/api/admin/api-keys/${keyPrefix}`);
       setSuccess('API Key deleted successfully');
       fetchAPIKeys();
       fetchUsageStats();
@@ -185,7 +185,7 @@ const APIManagement = () => {
 
   const handleToggleKeyStatus = async (keyPrefix, currentStatus) => {
     try {
-      await axios.patch(`http://localhost:8021/api/admin/api-keys/${keyPrefix}`, {
+      await axios.patch(`/api/admin/api-keys/${keyPrefix}`, {
         active: !currentStatus,
       });
       setSuccess(`API Key ${currentStatus ? 'deactivated' : 'activated'} successfully`);
@@ -298,7 +298,7 @@ const APIManagement = () => {
           </div>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             <a
-              href="http://localhost:8021/docs"
+              href="/api/docs"
               target="_blank"
               rel="noopener noreferrer"
               className="btn-primary"
