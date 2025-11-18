@@ -22,6 +22,7 @@ from core import HybridLivenessDetection
 from core.database import UserDatabase
 from core.face_recognition import FaceRecognitionSystem
 from backend.api_auth import optional_api_key, api_key_manager
+from backend.admin_manager import admin_manager
 
 # Initialize FastAPI
 app = FastAPI(
@@ -584,6 +585,85 @@ async def delete_user(user_id: int):
 
     except HTTPException:
         raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
+# ADMIN ENDPOINTS - API Key Management
+# ============================================================================
+
+class CreateAPIKeyRequest(BaseModel):
+    name: str
+    description: Optional[str] = ""
+
+class UpdateAPIKeyRequest(BaseModel):
+    active: bool
+
+@app.get("/api/admin/api-keys")
+async def get_api_keys():
+    """Get all API keys (admin only)"""
+    try:
+        api_keys = admin_manager.get_all_api_keys()
+        return {"success": True, "api_keys": api_keys}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/admin/api-keys")
+async def create_api_key(request: CreateAPIKeyRequest):
+    """Create a new API key (admin only)"""
+    try:
+        key_data = admin_manager.create_api_key(
+            name=request.name,
+            description=request.description
+        )
+        return {
+            "success": True,
+            "message": "API key created successfully",
+            "key": key_data['key'],
+            "name": key_data['name'],
+            "created_at": key_data['created_at']
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/admin/api-keys/{key_prefix}")
+async def delete_api_key(key_prefix: str):
+    """Delete an API key by its prefix (admin only)"""
+    try:
+        success = admin_manager.delete_api_key(key_prefix)
+        if success:
+            return {"success": True, "message": "API key deleted successfully"}
+        else:
+            raise HTTPException(status_code=404, detail="API key not found")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.patch("/api/admin/api-keys/{key_prefix}")
+async def update_api_key_status(key_prefix: str, request: UpdateAPIKeyRequest):
+    """Update API key status (admin only)"""
+    try:
+        success = admin_manager.update_api_key_status(key_prefix, request.active)
+        if success:
+            return {
+                "success": True,
+                "message": f"API key {'activated' if request.active else 'deactivated'} successfully"
+            }
+        else:
+            raise HTTPException(status_code=404, detail="API key not found")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/admin/api-usage")
+async def get_api_usage():
+    """Get API usage statistics (admin only)"""
+    try:
+        usage_stats = admin_manager.get_api_usage_stats()
+        return {"success": True, "usage": usage_stats}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

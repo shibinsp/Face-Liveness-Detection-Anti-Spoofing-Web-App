@@ -76,6 +76,12 @@ const Login = ({ setIsAuthenticated, setUser }) => {
             >
               Go to Registration →
             </button>
+            <button
+              onClick={() => navigate('/admin-login')}
+              className="btn-secondary w-100 mt-3"
+            >
+              🔑 API Management
+            </button>
           </div>
         </div>
       </div>
@@ -206,6 +212,13 @@ const Login = ({ setIsAuthenticated, setUser }) => {
         <div className="footer-actions">
           <button onClick={() => navigate('/register')} className="btn-secondary">
             New User? Register Here →
+          </button>
+          <button
+            onClick={() => navigate('/admin-login')}
+            className="btn-secondary"
+            style={{ marginTop: '0.5rem' }}
+          >
+            🔑 API Management
           </button>
         </div>
       </div>

@@ -5,6 +5,8 @@ import Footer from './components/Footer';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
+import AdminLogin from './pages/AdminLogin';
+import APIManagement from './pages/APIManagement';
 import './App.css';
 
 function AppContent() {
@@ -37,6 +39,8 @@ function AppContent() {
             }
           />
           <Route path="/register" element={<Register />} />
+          <Route path="/admin-login" element={<AdminLogin />} />
+          <Route path="/api-management" element={<APIManagement />} />
           <Route
             path="/dashboard"
             element={
