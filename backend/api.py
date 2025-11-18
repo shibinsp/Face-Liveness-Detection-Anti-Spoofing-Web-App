@@ -596,6 +596,8 @@ async def delete_user(user_id: int):
 class CreateAPIKeyRequest(BaseModel):
     name: str
     description: Optional[str] = ""
+    expiry_days: Optional[int] = None
+    rate_limit: Optional[int] = None
 
 class UpdateAPIKeyRequest(BaseModel):
     active: bool
@@ -615,14 +617,18 @@ async def create_api_key(request: CreateAPIKeyRequest):
     try:
         key_data = admin_manager.create_api_key(
             name=request.name,
-            description=request.description
+            description=request.description,
+            expiry_days=request.expiry_days,
+            rate_limit=request.rate_limit
         )
         return {
             "success": True,
             "message": "API key created successfully",
             "key": key_data['key'],
             "name": key_data['name'],
-            "created_at": key_data['created_at']
+            "created_at": key_data['created_at'],
+            "expiry_date": key_data.get('expiry_date'),
+            "rate_limit": key_data.get('rate_limit')
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -664,6 +670,24 @@ async def get_api_usage():
     try:
         usage_stats = admin_manager.get_api_usage_stats()
         return {"success": True, "usage": usage_stats}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/admin/api-logs/{key_prefix}")
+async def get_api_logs(key_prefix: str, limit: int = 100):
+    """Get detailed usage logs for a specific API key (admin only)"""
+    try:
+        logs = admin_manager.get_detailed_usage_logs(key_prefix, limit)
+        return {"success": True, "logs": logs, "count": len(logs)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/admin/api-timeline")
+async def get_api_timeline(days: int = 7):
+    """Get usage timeline for charts (admin only)"""
+    try:
+        timeline = admin_manager.get_usage_timeline(days)
+        return {"success": True, "timeline": timeline}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
