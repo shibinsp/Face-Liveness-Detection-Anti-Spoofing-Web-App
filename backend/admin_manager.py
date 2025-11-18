@@ -197,8 +197,8 @@ class AdminManager:
         # Filter logs for this key and limit results
         filtered_logs = []
         for log_entry in reversed(logs):  # Most recent first
-            api_key_used = log_entry.get('api_key_used', '')
-            if api_key_used.startswith(key_prefix):
+            api_key_used = log_entry.get('api_key_used') or ''
+            if api_key_used and api_key_used.startswith(key_prefix):
                 filtered_logs.append(log_entry)
                 if len(filtered_logs) >= limit:
                     break
