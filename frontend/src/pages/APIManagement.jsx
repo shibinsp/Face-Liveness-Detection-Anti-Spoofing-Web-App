@@ -464,8 +464,8 @@ const APIManagement = () => {
           </form>
         )}
 
-        {/* Usage Chart */}
-        {Object.keys(timeline).length > 0 && <UsageChart data={timeline} />}
+        {/* Usage Chart - Removed per user request */}
+        {/* {Object.keys(timeline).length > 0 && <UsageChart data={timeline} />} */}
 
         {/* Search and Filter */}
         <div style={{

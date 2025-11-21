@@ -328,6 +328,23 @@ const LiveAuthCamera = ({ onAuthStart, onAuthComplete, securityLevel = 3, recogn
         </button>
       )}
 
+      {isAuthenticating && (
+        <div style={{
+          marginTop: '10px',
+          padding: '12px',
+          background: 'linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%)',
+          borderRadius: '8px',
+          fontSize: '0.9rem',
+          textAlign: 'center',
+          fontWeight: 'bold',
+          color: '#2d3436',
+          border: '2px solid #fdcb6e',
+          animation: 'pulse 2s ease-in-out infinite',
+        }}>
+          ⏳ Please wait till the action is done...
+        </div>
+      )}
+
       <div style={{
         marginTop: '10px',
         padding: '10px',
